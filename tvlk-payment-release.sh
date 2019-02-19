@@ -121,6 +121,10 @@ printf "Creating the file release_branch.txt";
 touch -a release_branch.txt;
 printf "..DONE\n";
 
+printf "Checking out branch develop and pulling...\n";
+git checkout develop;
+git pull;
+printf "Checking out and pulling branch develop...DONE\n\n";
 
 for i in {PG,PAYPGW}; do
 	echo "";
