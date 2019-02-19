@@ -1,9 +1,19 @@
 #!/bin/bash
+
+# dependency check
+if command -v python3 >/dev/null 2>&1 ; then
+	printf "";
+else
+	printf "ERROR: Dependecy: python3 not installed. Please install using: sudo apt install python3\nExiting... (code:1)\n" 1>&2;
+	exit 1;
+fi
+
+
 release_date="";
 commit_base="";
-user_id="";
-API_token="";
-email="";
+user_id="";      # you can directly assign with your personal JIRA user ID or use the -u option when running the script
+API_token="";    # you can directly assign with your personal JIRA API token or use the -t option when running the script
+email="";        # you can directly assign with your personal Travleoka email address or use the -e option when running the script
 
 
 while test $# -gt 0; do
@@ -35,7 +45,7 @@ while test $# -gt 0; do
 			printf "   PAYASGN, PAYCTX, PAYPOP, PAYOD release branches and JIRA tickets\n";
 			printf "3) [ATTENTION] There's no date format checking, commit SHA check, email, userID, and API token check!\n";
 			printf "   So, make sure you enter the correct information before running this script!\n\n"
-			printf "WARNING: This scipt has been tested in creating all the 2019-02-19 release branches. However, no guarantee it will run correctly in your computer.";
+			printf "WARNING: This scipt has been tested in creating all the 2019-02-19 release branches on Ubuntu 16.04. However, no guarantee it will run correctly on your computer.";
 			printf " So, RUN IT AT YOUR OWN RISK.\n";
 			exit 0;
 			;;
@@ -81,7 +91,7 @@ while test $# -gt 0; do
 done
 
 if [ -z "$release_date" ] || [ -z "$commit_base" ] || [ -z "$email" ] || [ -z "$API_token" ]|| [ -z "$user_id" ]; then
-	printf "FATAL ERROR: Release date, commit base, email, API token, and user ID must not be empty.\nFor manual type: ./tvlk-payment-release.sh --help\nExiting...\n";
+	printf "FATAL ERROR: Release date, commit base, email, API token, and user ID must not be empty.\nFor manual type: ./tvlk-payment-release.sh --help\nExiting...\n" 1>&2;
 	exit 1;
 fi
 
@@ -94,46 +104,58 @@ echo " - Email        = $email";
 echo " - API token    = $API_token";
 echo "";
 echo "=================================================================================";
+echo "";
+
+# parameter check
+while true; do
+    read -p "(WARNING! Incorrect parameters will ruin your day!) Are you sure the above parameters correct? [yes/no] " yn
+    case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
+
 
 printf "Creating the file release_branch.txt";
 touch -a release_branch.txt;
 printf "..DONE\n";
 
 
-# for i in {PG,PAYPGW}; do
-# 	echo "";
-# 	echo "---";
-# 	service=$(echo $i | tr '[A-Z]' '[a-z]');\
-# 	echo "Creating branch release $service"; \
-# 	git checkout -B $service/release/$release_date $commit_base; git push -u origin HEAD; \
+for i in {PG,PAYPGW}; do
+	echo "";
+	echo "---";
+	service=$(echo $i | tr '[A-Z]' '[a-z]');\
+	echo "Creating branch release $service"; \
+	git checkout -B $service/release/$release_date $commit_base; git push -u origin HEAD; \
 
-# 	echo "Creating JIRA Task for $i"; \
-# 	issue=$(curl -s -X POST \
-# 		https://29022131.atlassian.net/rest/api/2/issue/ \
-# 		-u "$email:$API_token" \
-# 		-H 'Cache-Control: no-cache' \
-# 		-H 'Content-Type: application/json' \
-# 		-d "{\"fields\":{\"project\":{\"key\":\"PAY\"},\"summary\":\"[RELEASE] [$release_date] [$i] [S+F] [Main Release]\",\"description\":\"Change Log:\n1.\n\nTime and Version of Release:\nTime: Timestamp of actual release to production\nOld version:\nNew version:\n\nDependency:\n1. ..\n2. ..\n\nRisk:\nPlease give warning on this asana if your change have major risk (new major feature, service refactors, major config change, etc)\n\nReasons of Rollback:\nAdd reasons of rollback/ link to document if any\n...\n...\n\nNote:\nS = Service only\nF = Fetcher only\nS+F = Service and Fetcher\",\"issuetype\":{\"name\":\"Task\"},\"components\":[{\"id\":\"16403\"}],\"assignee\":{\"name\":\"$user_id\"}}}" | python3 -c "import sys, json; print(json.load(sys.stdin)['key'])");  \
-# 	echo "\`$service/release/$release_date\` https://29022131.atlassian.net/browse/$issue" >> release_branch.txt;
-# 	echo "$i DONE"
-# 	echo "---"
-# done;
+	echo "Creating JIRA Task for $i"; \
+	issue=$(curl -s -X POST \
+		https://29022131.atlassian.net/rest/api/2/issue/ \
+		-u "$email:$API_token" \
+		-H 'Cache-Control: no-cache' \
+		-H 'Content-Type: application/json' \
+		-d "{\"fields\":{\"project\":{\"key\":\"PAY\"},\"summary\":\"[RELEASE] [$release_date] [$i] [S+F] [Main Release]\",\"description\":\"Change Log:\n1.\n\nTime and Version of Release:\nTime: Timestamp of actual release to production\nOld version:\nNew version:\n\nDependency:\n1. ..\n2. ..\n\nRisk:\nPlease give warning on this asana if your change have major risk (new major feature, service refactors, major config change, etc)\n\nReasons of Rollback:\nAdd reasons of rollback/ link to document if any\n...\n...\n\nNote:\nS = Service only\nF = Fetcher only\nS+F = Service and Fetcher\",\"issuetype\":{\"name\":\"Task\"},\"components\":[{\"id\":\"16403\"}],\"assignee\":{\"name\":\"$user_id\"}}}" | python3 -c "import sys, json; print(json.load(sys.stdin)['key'])");  \
+	echo "\`$service/release/$release_date\` https://29022131.atlassian.net/browse/$issue" >> release_branch.txt;
+	echo "$i DONE"
+	echo "---"
+done;
 
-# for i in {PAYPAPI,PAYWLT,POUT,PAYFCLT,PAYASGN,PAYCTX,PAYPOP,PAYOD}; do
-# 	echo "";
-# 	echo "---";
-# 	service=$(echo $i | tr '[A-Z]' '[a-z]');\
-# 	echo "Creating branch release $service"; \
-# 	git checkout -B $service/release/$release_date $commit_base; git push -u origin HEAD; \
+for i in {PAYPAPI,PAYWLT,POUT,PAYFCLT,PAYASGN,PAYCTX,PAYPOP,PAYOD}; do
+	echo "";
+	echo "---";
+	service=$(echo $i | tr '[A-Z]' '[a-z]');\
+	echo "Creating branch release $service"; \
+	git checkout -B $service/release/$release_date $commit_base; git push -u origin HEAD; \
 
-# 	echo "Creating JIRA Task for $i"; \
-# 	issue=$(curl -s -X POST \
-# 		https://29022131.atlassian.net/rest/api/2/issue/ \
-# 		-u "$email:$API_token" \
-# 		-H 'Cache-Control: no-cache' \
-# 		-H 'Content-Type: application/json' \
-# 		-d "{\"fields\":{\"project\":{\"key\":\"PAY\"},\"summary\":\"[RELEASE] [$release_date] [$i] [S] [Main Release]\",\"description\":\"Change Log:\n1.\n\nTime and Version of Release:\nTime: Timestamp of actual release to production\nOld version:\nNew version:\n\nDependency:\n1. ..\n2. ..\n\nRisk:\nPlease give warning on this asana if your change have major risk (new major feature, service refactors, major config change, etc)\n\nReasons of Rollback:\nAdd reasons of rollback/ link to document if any\n...\n...\n\nNote:\nS = Service only\nF = Fetcher only\nS+F = Service and Fetcher\",\"issuetype\":{\"name\":\"Task\"},\"components\":[{\"id\":\"16403\"}],\"assignee\":{\"name\":\"$user_id\"}}}" | python3 -c "import sys, json; print(json.load(sys.stdin)['key'])");  \
-# 	echo "\`$service/release/$release_date\` https://29022131.atlassian.net/browse/$issue" >> release_branch.txt;
-# 	echo "$i DONE";
-# 	echo "---";
-# done;
+	echo "Creating JIRA Task for $i"; \
+	issue=$(curl -s -X POST \
+		https://29022131.atlassian.net/rest/api/2/issue/ \
+		-u "$email:$API_token" \
+		-H 'Cache-Control: no-cache' \
+		-H 'Content-Type: application/json' \
+		-d "{\"fields\":{\"project\":{\"key\":\"PAY\"},\"summary\":\"[RELEASE] [$release_date] [$i] [S] [Main Release]\",\"description\":\"Change Log:\n1.\n\nTime and Version of Release:\nTime: Timestamp of actual release to production\nOld version:\nNew version:\n\nDependency:\n1. ..\n2. ..\n\nRisk:\nPlease give warning on this asana if your change have major risk (new major feature, service refactors, major config change, etc)\n\nReasons of Rollback:\nAdd reasons of rollback/ link to document if any\n...\n...\n\nNote:\nS = Service only\nF = Fetcher only\nS+F = Service and Fetcher\",\"issuetype\":{\"name\":\"Task\"},\"components\":[{\"id\":\"16403\"}],\"assignee\":{\"name\":\"$user_id\"}}}" | python3 -c "import sys, json; print(json.load(sys.stdin)['key'])");  \
+	echo "\`$service/release/$release_date\` https://29022131.atlassian.net/browse/$issue" >> release_branch.txt;
+	echo "$i DONE";
+	echo "---";
+done;
