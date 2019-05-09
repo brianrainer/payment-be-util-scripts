@@ -145,7 +145,7 @@ for i in {PG,PAYPGW}; do
 	echo "---"
 done;
 
-for i in {PAYPAPI,PAYWLT,POUT,PAYFCLT,PAYASGN,PAYCTX,PAYPOP,PAYOD}; do
+for i in {PAYPAPI,PAYWLT,POUT,PAYFCLT,PAYASGN,PAYCTX,PAYPOP,PAYOD,IPIPTC}; do
 	echo "";
 	echo "---";
 	service=$(echo $i | tr '[A-Z]' '[a-z]');\
